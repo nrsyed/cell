@@ -1,3 +1,20 @@
+############################################################################################################
+# Name: formatCoords.py
+#
+# Description: Process the text file output of Tasker cell tower CDMA data (for Tasker
+#   information/documentation, see http://tasker.dinglisch.net/). Tasker output should be a delimited
+#   text file containing the CDMA value, latitude, and longitude. Any delimiter may be used and the
+#   columns may be in any order--specify the relevant columns with the corresponding options (see
+#   below). If the Tasker output file contains a header row, or if the first N rows are to be
+#   skipped, use the option --first-line with the value 1 or (N-1), respectively.
+#   
+#   This script outputs the latitude and longitude of each point in a tab-delimited text file.
+#
+# Author: Najam Syed
+# Created: 2017-06-18
+#
+############################################################################################################
+
 import argparse
 import csv
 import types
@@ -20,6 +37,7 @@ parser.add_argument("-n", "--cdma-number", default=385, help="The CDMA of the de
 
 args = vars(parser.parse_args())
 
+# Set the delimiter
 if type(args["delim"]) is types.NoneType:
     delim = "\t"
 elif args["delim"] == "tab":
@@ -33,12 +51,14 @@ elif args["delim"] == "sp":
 else:
     delim = args["delim"]
 
+# Set other parameters
 cdmaInd = int(args["cdma_index"])
 latInd = int(args["latitude_index"])
 lonInd = int(args["longitude_index"])
 firstLine = int(args["first_line"])
 cdma = int(args["cdma_number"])
 
+# Import Tasker data
 with open(args["input-file"]) as fileName:
     reader = csv.reader(fileName, delimiter=delim)
     fileContents = list(reader)
