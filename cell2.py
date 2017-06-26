@@ -1,6 +1,7 @@
 # Locate cell tower from hand-off coordinates using the method of triangles/perimeters.
-# Script is currently incomplete--determines the x number of triangles from the list of
-# points with the largest perimeters and prints them to the console.
+# Script determines perimeters of the largest triangles formed by 10 sets of 3 points,
+# computes the coordinates of the center of the circle formed by each triangle, then
+# uses the average circle center location as its estimate for the true center.
 debug = False
 
 import math
@@ -51,9 +52,7 @@ for i in range(len(coordList)):
             isDuplicate = True
             break
     
-    if isDuplicate:
-        continue
-    else:
+    if not isDuplicate:
         coordListUnique.append([currentLat, currentLon])
 
 # Put the coordinates from coordListUnique into the numpy array coordArray
@@ -63,8 +62,7 @@ for i in range(len(coordListUnique)):
     coordArray[i,1] = coordListUnique[i][1]
 if verbose: print("Duplicate points removed!\n")
 
-if debug:
-    print(coordArray)
+if debug: print(coordArray)
 
 # Find the numTriangles sets of three points that form the triangles with the largest perimeters.
 # These sets and their perimeters will be stored in the list triList.
@@ -115,12 +113,8 @@ for i in range(len(coordArray[:,0]) - 2):
                 triList.append([currentPerim, coordArray[i,:], coordArray[j,:], coordArray[k,:]])
                 # Sort by first index of the entries in triList; ascending order
                 triList.sort(key=itemgetter(0), reverse=True)
-                for q in range(len(triList)):
-                    print(triList[q][0])
-                print("\n")
             else:
                 for index, entry in enumerate(triList):
-                    print(entry[0])
                     if currentPerim > entry[0]:
                         triList.pop(index)
                         triList.insert(index, [currentPerim,coordArray[i,:],coordArray[j,:], coordArray[k,:]])
@@ -154,12 +148,14 @@ for i in range(len(coordArray[:,0]) - 2):
 # Function getCircle(...) accepts three 1x2 numpy arrays: three pairs of (x,y) coordinates.
 # Outputs a 3-tuple containing (h, k, r).
 def getCircle(p1, p2, p3):
-    lat1 = p1[0,0]
-    lon1 = p1[0,1]
-    lat2 = p2[0,0]
-    lon2 = p2[0,1]
-    lat3 = p3[0,0]
-    lon3 = p3[0,1]
+    lat1 = p1[0]
+    lon1 = p1[1]
+    lat2 = p2[0]
+    lon2 = p2[1]
+    lat3 = p3[0]
+    lon3 = p3[1]
+
+    # TODO: CHECK FOR COLLINEARITY
 
     A = lat2 - lat1
     B = lon2 - lon1
@@ -175,3 +171,65 @@ def getCircle(p1, p2, p3):
     r = math.sqrt(sqr(lat1 - h) + sqr(lon1 - k))
     return (h, k, r)
 
+# Compute the center and radius of the points formed by each of the above triangles.
+# Array column 0 = latitude (h), 1 = longitude (k), 2 = radius (r)
+triCircles = np.zeros((numTriangles, 3))
+for i in range(numTriangles):
+    circleCoords = getCircle(triList[i][1], triList[i][2], triList[i][3])
+    triCircles[i,0] = circleCoords[0]
+    triCircles[i,1] = circleCoords[1]
+    triCircles[i,2] = circleCoords[2]
+
+# Plot points as blue dots.
+fig, ax = plt.subplots()
+ax.plot(coordArray[:,0], coordArray[:,1], 'bo')
+
+# Plot triangles and circles formed by triangles in red.
+# Simultaneously compute average circle center coords and average radius.
+circleResolution = 100  # number of points used to construct (the circumference) of circles
+theta = np.linspace(0, 2*PI, circleResolution)
+circleCircumferencePoints = np.zeros((circleResolution, 2))
+
+sumLats = 0
+sumLons = 0
+sumRadii = 0
+numToAverage = 0
+for i in range(numTriangles):
+    # Plot triangle
+    ax.plot([triList[i][1][0], triList[i][2][0], triList[i][3][0]],
+        [triList[i][1][1], triList[i][2][1], triList[i][3][1]], 'r-')
+
+    # Plot circle center
+    h = triCircles[i,0]
+    k = triCircles[i,1]
+    r = triCircles[i,2]
+    ax.plot(h, k, 'r+')
+
+    # Plot circle
+    for j in range(circleResolution):
+        circleCircumferencePoints[j,0] = h + r * math.cos(theta[j])
+        circleCircumferencePoints[j,1] = k + r * math.sin(theta[j])
+
+    ax.plot(circleCircumferencePoints[:,0], circleCircumferencePoints[:,1], 'r-')
+
+    # Remove outliers/unrealistically large circles from average.
+    if r <= 0.25:
+        numToAverage += 1
+        sumLats += h
+        sumLons += k
+        sumRadii += r
+
+# Compute average center and radius.
+avgLat = sumLats / numToAverage
+avgLon = sumLons / numToAverage
+avgRad = sumRadii / numToAverage
+
+# Plot average circle center and radius in black.
+ax.plot(avgLat, avgLon, 'kx', lw=2)
+for j in range(circleResolution):
+    circleCircumferencePoints[j,0] = avgLat + avgRad * math.cos(theta[j])
+    circleCircumferencePoints[j,1] = avgLon + avgRad * math.sin(theta[j])
+ax.plot(circleCircumferencePoints[:,0], circleCircumferencePoints[:,1], 'k-', lw=2)
+
+print("Center: ({:f}, {:f}). Radius: {:f}\n".format(avgLat, avgLon, avgRad))
+plt.show()
