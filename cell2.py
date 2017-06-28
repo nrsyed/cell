@@ -182,7 +182,7 @@ for i in range(numTriangles):
 
 # Plot points as blue dots.
 fig, ax = plt.subplots()
-ax.plot(coordArray[:,0], coordArray[:,1], 'bo')
+ax.plot(coordArray[:,1], coordArray[:,0], 'bo')
 
 # Plot triangles and circles formed by triangles in red.
 # Simultaneously compute average circle center coords and average radius.
@@ -196,19 +196,19 @@ sumRadii = 0
 numToAverage = 0
 for i in range(numTriangles):
     # Plot triangle
-    ax.plot([triList[i][1][0], triList[i][2][0], triList[i][3][0]],
-        [triList[i][1][1], triList[i][2][1], triList[i][3][1]], 'r-')
+    ax.plot([triList[i][1][1], triList[i][2][1], triList[i][3][1]],
+        [triList[i][1][0], triList[i][2][0], triList[i][3][0]], 'r-')
 
     # Plot circle center
     h = triCircles[i,0]
     k = triCircles[i,1]
     r = triCircles[i,2]
-    ax.plot(h, k, 'r+')
+    ax.plot(k, h, 'r+')
 
     # Plot circle
     for j in range(circleResolution):
-        circleCircumferencePoints[j,0] = h + r * math.cos(theta[j])
-        circleCircumferencePoints[j,1] = k + r * math.sin(theta[j])
+        circleCircumferencePoints[j,0] = k + r * math.sin(theta[j])
+        circleCircumferencePoints[j,1] = h + r * math.cos(theta[j])
 
     ax.plot(circleCircumferencePoints[:,0], circleCircumferencePoints[:,1], 'r-')
 
@@ -225,11 +225,13 @@ avgLon = sumLons / numToAverage
 avgRad = sumRadii / numToAverage
 
 # Plot average circle center and radius in black.
-ax.plot(avgLat, avgLon, 'kx', lw=2)
+ax.plot(avgLon, avgLat, 'kx', lw=2)
 for j in range(circleResolution):
-    circleCircumferencePoints[j,0] = avgLat + avgRad * math.cos(theta[j])
-    circleCircumferencePoints[j,1] = avgLon + avgRad * math.sin(theta[j])
+    circleCircumferencePoints[j,0] = avgLon + avgRad * math.sin(theta[j])
+    circleCircumferencePoints[j,1] = avgLat + avgRad * math.cos(theta[j])
 ax.plot(circleCircumferencePoints[:,0], circleCircumferencePoints[:,1], 'k-', lw=2)
 
 print("Center: ({:f}, {:f}). Radius: {:f}\n".format(avgLat, avgLon, avgRad))
+#ax.invert_yaxis()
+#ax.invert_xaxis()
 plt.show()
