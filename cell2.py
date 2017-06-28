@@ -232,6 +232,7 @@ for j in range(circleResolution):
 ax.plot(circleCircumferencePoints[:,0], circleCircumferencePoints[:,1], 'k-', lw=2)
 
 print("Center: ({:f}, {:f}). Radius: {:f}\n".format(avgLat, avgLon, avgRad))
-#ax.invert_yaxis()
-#ax.invert_xaxis()
+print("Centers of largest {:d}:".format(numTriangles))
+for i in range(numTriangles):
+    print("({:f}, {:f})".format(triCircles[i,0], triCircles[i,1]))
 plt.show()
