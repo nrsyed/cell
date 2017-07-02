@@ -90,4 +90,4 @@ with open(outputPath, "w") as output:
     for k in range(len(coordList)):
         writer.writerow(coordList[k])
 
-print("File " + outputPath + " successfully written.")
+print("\n{:d} coordinates successfully written to {:s}".format(len(coordList),outputPath))
