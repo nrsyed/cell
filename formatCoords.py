@@ -14,7 +14,10 @@
 # Created:  2017-06-18
 # Modified:
 #           2017-06-25
-#           2017-07-06  Added functionality for parsing files in current directory. INCOMPLETE.
+#           2017-07-06  Added functionality for parsing files in current directory.
+#           2017-07-07  Completed "extract all" functionality to get all CDMAs from a file, and write
+#                       a unique text file for each one (without overwriting previous files of the same
+#                       CDMA number).
 #
 ############################################################################################################
 
@@ -44,8 +47,10 @@ parser.add_argument("-o", "--longitude-index", default=4,
 parser.add_argument("-f", "--first-line", default=0,
     help="The row index where actual data begins (first row = 0); default 0")
 parser.add_argument("-X", "--extract-all", action='store_true',
-    help="Extract all CDMAs from the file. Create a text file containing formatted coordinates for each CDMA found.")
-parser.add_argument("-D", "--destination", help="Choose the directory where the text file(s) will be placed.")
+    help="Extract all CDMAs from the file. Create a text file containing formatted coordinates for each" +
+        " CDMA found. If -X flag and -n flag are used simultaneously, -X takes priority.")
+#TODO:
+#parser.add_argument("-D", "--destination", help="Choose the directory where the text file(s) will be placed.")
 
 args = vars(parser.parse_args())
 
@@ -68,8 +73,7 @@ cdmaInd = int(args["cdma_index"])
 latInd = int(args["latitude_index"])
 lonInd = int(args["longitude_index"])
 firstLine = int(args["first_line"])
-
-cdma = int(args["cdma_number"])
+extractAll = args["extract_all"]
 
 # Get list of directory contents
 directoryContents = os.listdir(os.getcwd())
@@ -131,14 +135,14 @@ for fileNameStr in existingFiles:
         if currentCdmaInstance > cdmaList[cdmaListIndex][1]:
             cdmaList[cdmaListIndex][1] = currentCdmaInstance
 
+# Import Tasker data
+with open(args["input-file"]) as fileName:
+    reader = csv.reader(fileName, delimiter=delim)
+    fileContents = list(reader)
+
 # Function getCDMA(...) extracts the relevant data for a given CDMA value, then writes it to
 # a text file in a standardized format.
-def getCDMA(cmdaNum):
-    # Import Tasker data
-    with open(args["input-file"]) as fileName:
-        reader = csv.reader(fileName, delimiter=delim)
-        fileContents = list(reader)
-
+def getCDMA(cdmaNum):
     # Extract the relevant information and put into the list 'coordList'
     # The cells in the CDMA column contain a string formatted as "CDMA:000" where "000" is the relevant number.
     #   The code "int(fileContents[j][cdmaInd][5:])" extracts the number from the string (char 5 to end) in row
@@ -149,21 +153,65 @@ def getCDMA(cmdaNum):
     for j in range(firstLine, len(fileContents)):
         # try/except statement handles case where the CDMA is not an integer by continuing to the next iteration
         try:
-            if int(fileContents[j][cdmaInd][5:]) == cdma:
+            if int(fileContents[j][cdmaInd][5:]) == cdmaNum:
                 coordList.append([float(fileContents[j][latInd]), float(fileContents[j][lonInd])])
         except:
             pass
 
     # Check if coordList empty.
     if len(coordList) == 0:
-        print("No matching CDMA entries found. Exiting.")
+        print("Error: no matching CDMA entries found.")
+    else:
+        # If coordList not empty, determine (and increment) instance number.
+        # Then write coordList contents to file.
+        instanceNumToWrite = 0
+        for existingCdma in cdmaList:
+            if existingCdma[0] == cdmaNum:
+                instanceNumToWrite = existingCdma[1]
+                break
+        instanceNumToWrite += 1
+
+        outputPath = str(cdmaNum) + "-" + str(instanceNumToWrite) + ".txt"
+        with open(outputPath, "w") as output:
+            writer = csv.writer(output, lineterminator='\n', delimiter='\t')
+            for k in range(len(coordList)):
+                writer.writerow(coordList[k])
+        print("File " + outputPath + " successfully written.")
+
+# If --extract-all flag not used, run getCDMA(...) on selected CDMA. Else, find all unique CDMAs represented
+# in the file, and run getCDMA(...) on each.
+if not extractAll:
+    cdma = int(args["cdma_number"])
+    print("Extracting data for CDMA {:d}".format(cdma))
+    getCDMA(cdma)
+else:
+    uniqueCdmaList = list()
+    cdmaAlreadyInUniqueList = False
+    for j in range(firstLine, len(fileContents)):
+        cdmaAlreadyInUniqueList = False
+        # try/except statement handles case where CDMA column in the current line does not contain an int
+        try:
+            currentCdma = int(fileContents[j][cdmaInd][5:])
+            
+            # Check if currentCdma already exists in uniqueCdmaList
+            for existingUniqueCdma in uniqueCdmaList:
+                if currentCdma == existingUniqueCdma:
+                    cdmaAlreadyInUniqueList = True
+                    break
+            if not cdmaAlreadyInUniqueList:
+                uniqueCdmaList.append(currentCdma)
+        except:
+            pass
+
+    # Check if list empty, ie, no valid CDMA values found
+    if len(uniqueCdmaList) == 0:
+        print("Error: no valid CDMA entries found. Exiting.")
         exit()
+    else:
+        print("The following CDMA values were found:")
+        for uniqueCdma in uniqueCdmaList: print(uniqueCdma)
 
-    # If coordList not empty, write contents to file.
-    outputPath = str(cdma) + ".txt"
-    with open(outputPath, "w") as output:
-        writer = csv.writer(output, lineterminator='\n', delimiter='\t')
-        for k in range(len(coordList)):
-            writer.writerow(coordList[k])
-
-    print("File " + outputPath + " successfully written.")
+    # Run getCDMA(...) on each unique CDMA.
+    print("Extracting data for CDMA values.")
+    for uniqueCdma in uniqueCdmaList:
+        getCDMA(uniqueCdma)
