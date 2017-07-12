@@ -18,6 +18,7 @@
 #           2017-07-07  Completed "extract all" functionality to get all CDMAs from a file, and write
 #                       a unique text file for each one (without overwriting previous files of the same
 #                       CDMA number).
+#           2017-07-11  Print number of coordinates written to file; other minor modifications.
 #
 ############################################################################################################
 
@@ -160,7 +161,7 @@ def getCDMA(cdmaNum):
 
     # Check if coordList empty.
     if len(coordList) == 0:
-        print("Error: no matching CDMA entries found.")
+        print("Error: no matching CDMA entries found for CDMA {:d}.".format(cdmaNum))
     else:
         # If coordList not empty, determine (and increment) instance number.
         # Then write coordList contents to file.
