@@ -10,7 +10,7 @@
 #   
 #   This script outputs the latitude and longitude of each point in a tab-delimited text file.
 #
-# Author: Najam Syed
+# Authors: Najam Syed and Ben Bachman
 # Created:  2017-06-18
 # Modified:
 #           2017-06-25
@@ -139,7 +139,7 @@ for fileNameStr in existingFiles:
 with open(args["input-file"]) as fileName:
     reader = csv.reader(fileName, delimiter=delim)
     fileContents = list(reader)
-
+    
 # Function getCDMA(...) extracts the relevant data for a given CDMA value, then writes it to
 # a text file in a standardized format.
 def getCDMA(cdmaNum):
@@ -176,7 +176,7 @@ def getCDMA(cdmaNum):
             writer = csv.writer(output, lineterminator='\n', delimiter='\t')
             for k in range(len(coordList)):
                 writer.writerow(coordList[k])
-        print("File " + outputPath + " successfully written.")
+        print("\n{:d} coordinates successfully written to {:s}".format(len(coordList),outputPath))
 
 # If --extract-all flag not used, run getCDMA(...) on selected CDMA. Else, find all unique CDMAs represented
 # in the file, and run getCDMA(...) on each.
