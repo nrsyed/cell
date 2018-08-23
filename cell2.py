@@ -87,15 +87,17 @@ if verbose:
 iteration = 0       # var to track iterations
 initialTime = time.time() 
 currentTime = initialTime
+updateOnPercent = 5  # percent of complete to update calculation time to cmd
+calcPercent = updateOnPercent*numCombinations/100
 for i in range(len(coordArray[:,0]) - 2):
     for j in range(i+1, len(coordArray[:,0]) - 1):
         for k in range(j+1, len(coordArray[:,0])):
             iteration += 1
-            if verbose==True and iteration % 500000 == 0:
+            if verbose==True and iteration % calcPercent == 0:
                 lastTime = currentTime
                 currentTime = time.time()
                 timeSinceLast = currentTime - lastTime
-                rate = 500000 / timeSinceLast
+                rate = calcPercent / timeSinceLast
                 timeLeft = (numCombinations - iteration) / rate
                 print("{:d} / {:d} combinations ({:.1f}%) completed".format(
                     iteration, numCombinations, 100. * iteration / numCombinations)
@@ -118,6 +120,8 @@ for i in range(len(coordArray[:,0]) - 2):
                     if currentPerim > entry[0]:
                         triList.pop(index)
                         triList.insert(index, [currentPerim,coordArray[i,:],coordArray[j,:], coordArray[k,:]])
+                        # Some interesting debug/tracking info
+			print("New perim to top 10: {:f}\n".format(currentPerim))
                         break
 
 # Use the function getCircle(...) to compute the coordinates of the center of the circle
@@ -231,8 +235,8 @@ for j in range(circleResolution):
     circleCircumferencePoints[j,1] = avgLat + avgRad * math.cos(theta[j])
 ax.plot(circleCircumferencePoints[:,0], circleCircumferencePoints[:,1], 'k-', lw=2)
 
-print("Center: ({:f}, {:f}). Radius: {:f}\n".format(avgLat, avgLon, avgRad))
-print("Centers of largest {:d}:".format(numTriangles))
+print("C,{:f},{:f}\n".format(avgLat, avgLon))
+#print("Centers of largest {:d}:".format(numTriangles))
 for i in range(numTriangles):
-    print("({:f}, {:f})".format(triCircles[i,0], triCircles[i,1]))
+    print("{:d},{:f},{:f}".format(i,triCircles[i,0], triCircles[i,1]))
 plt.show()
